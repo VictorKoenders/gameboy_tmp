@@ -5,28 +5,109 @@
 class HL
 {
 public:
-	static int16_t get(const State &state);
-	static void set(State &state, int16_t value);
+	static uint16_t get(const State &state);
+	static void set(State &state, uint16_t value);
+};
+
+class A
+{
+public:
+	static uint8_t get(const State &state);
+	static void set(State &state, uint8_t value);
+};
+
+class B
+{
+public:
+	static uint8_t get(const State &state);
+	static void set(State &state, uint8_t value);
 };
 
 class C
 {
 public:
-	static int8_t get(const State &state);
-	static void set(State &state, int8_t value);
+	static uint8_t get(const State &state);
+	static void set(State &state, uint8_t value);
+};
+
+class D
+{
+public:
+	static uint8_t get(const State &state);
+	static void set(State &state, uint8_t value);
+};
+
+class E
+{
+public:
+	static uint8_t get(const State &state);
+	static void set(State &state, uint8_t value);
+};
+
+class H
+{
+public:
+	static uint8_t get(const State &state);
+	static void set(State &state, uint8_t value);
+};
+
+class L
+{
+public:
+	static uint8_t get(const State &state);
+	static void set(State &state, uint8_t value);
 };
 
 class D8
 {
 public:
-	static int8_t get(State &state);
-	static void set(State &state, int8_t value);
+	static uint8_t get(State &state);
+	static void set(State &state, uint8_t value);
+};
+
+class D16
+{
+public:
+	static uint16_t get(State &state);
+	static void set(State &state, uint16_t value);
+};
+
+class SPR8
+{
+public:
+	static int16_t get(State &state);
+	static void set(State &state, int16_t value);
 };
 
 class BC
 {
 public:
-	static int16_t get(const State &state);
-	static void set(State &state, int16_t value);
+	static uint16_t get(const State &state);
+	static void set(State &state, uint16_t value);
 };
 
+class PtrBC
+{
+public:
+	static uint8_t get(const State &state);
+	static void set(State &state, uint8_t value);
+};
+
+class PtrHL
+{
+public:
+	static uint8_t get(const State &state);
+	static void set(State &state, uint8_t value);
+};
+
+class Z
+{
+public:
+	static bool is_true(const State &state);
+};
+
+class Always
+{
+public:
+	static bool is_true(const State) { return true; }
+};

@@ -5,11 +5,14 @@
 #include "Cpu.hpp"
 #include "Rom.hpp"
 
-using Memory = std::array<uint8_t, 8 * 1024>;
+using Memory = std::vector<uint8_t>;
 using Video = std::array<uint8_t, 8 * 1024>;
 
 class State
 {
+	std::vector<std::array<uint8_t, 0x2000>> banks;
+	size_t current_bank;
+	void log_op(uint16_t, const char*);
 public:
 	State();
 
@@ -19,6 +22,7 @@ public:
 	Video video;
 	bool is_error;
 	uint8_t interrupt_enabled;
+	uint32_t cycles;
 
 	[[noreturn]]
 	void panic(const std::string&) const;

@@ -8,8 +8,9 @@ int main()
 {
 	State state;
 
-	while (true) {
+	while (!state.is_error) {
 		state.process();
 	}
+	getchar();
 	return 0;
 }
