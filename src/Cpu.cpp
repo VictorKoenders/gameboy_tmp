@@ -49,7 +49,7 @@ Cpu::Cpu() :
 	H(0),
 	L(0),
 	sp(0),
-	pc(0x0100),
+	pc(0x0),
 	flags(Flags::Empty)
 {
 

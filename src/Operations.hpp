@@ -16,10 +16,53 @@ public:
 	{
 		auto from = TFrom::get(state);
 		auto to = TTo::get(state);
+		auto result = from + to;
 
 		state.cycles += 8;
 
-		TTo::set(state, to + from);
+		auto flags = Flags::Empty;
+		if (result == 0) {
+			flags |= Flags::Zero;
+		}
+		auto carrybits = from ^ to ^ result;
+		if ((carrybits & 0x100) != 0) {
+			flags |= Flags::Carry;
+		}
+		if ((carrybits & 0x10) != 0) {
+			flags |= Flags::HalfCarry;
+		}
+		state.cpu.flags = flags;
+
+		TTo::set(state, result);
+	}
+};
+
+template <typename TFrom>
+class Sub
+{
+public:
+	static void execute(State &state)
+	{
+		auto from = TFrom::get(state);
+		auto to = state.cpu.A;
+		auto result = to - from;
+
+		state.cycles += 8;
+
+		auto flags = Flags::Subtract;
+		if (result == 0) {
+			flags |= Flags::Zero;
+		}
+		auto carrybits = state.cpu.A ^ from ^ result;
+		if ((carrybits & 0x100) != 0) {
+			flags |= Flags::Carry;
+		}
+		if ((carrybits & 0x10) != 0) {
+			flags |= Flags::HalfCarry;
+		}
+		state.cpu.flags = flags;
+
+		state.cpu.A = result;
 	}
 };
 
@@ -59,6 +102,14 @@ public:
 		auto val = TField::get(state);
 		
 		state.cycles += 8;
+		auto flags = state.cpu.flags & Flags::Carry;
+		if ((val + 1) == 0) {
+			flags |= Flags::Zero;
+		}
+		if ((val & 0b111) == 0b111) {
+			flags |= Flags::HalfCarry;
+		}
+		state.cpu.flags = flags;
 
 		TField::set(state, val + 1);
 	}
@@ -73,6 +124,15 @@ public:
 		auto val = TField::get(state);
 
 		state.cycles += 4;
+		auto flags = (state.cpu.flags & Flags::Carry) | Flags::Subtract;
+		if ((val - 1) == 0) {
+			flags |= Flags::Zero;
+		}
+		if ((val & 0b1000) == 0b1000) {
+			flags |= Flags::HalfCarry;
+		}
+		state.cpu.flags = flags;
+
 
 		TField::set(state, val - 1);
 	}
@@ -95,6 +155,21 @@ public:
 		state.cycles += 8;
 
 		TTo::set(state, from);
+	}
+};
+
+template <typename TTo, typename TFrom>
+class LoadIntoMemory
+{
+public:
+	static void execute(State &state)
+	{
+		auto from = TFrom::get(state);
+		auto address = 0xFF00 + static_cast<int8_t>(TTo::get(state));
+
+		state.cycles += 12;
+
+		state.set_memory_byte(address, from);
 	}
 };
 
@@ -156,6 +231,109 @@ public:
 		state.cycles += 4;
 
 		state.cpu.flags = flags;
+	}
+};
+
+template <int N, typename TField>
+class Bit
+{
+public:
+	static void execute(State& state) {
+		uint8_t value = TField::get(state);
+		Flags flags = (state.cpu.flags & Flags::Carry) | Flags::HalfCarry;
+		if ((value & (0x1 << N)) == 0) {
+			flags |= Flags::Zero;
+		}
+
+		state.cycles += 8;
+
+		state.cpu.flags = flags;
+	}
+};
+
+template <typename TField>
+class Push
+{
+public:
+	static void execute(State& state) {
+		int16_t value = TField::get(state);
+		state.set_memory_byte(state.cpu.sp, static_cast<uint8_t>(value & 0xFF));
+		state.set_memory_byte(state.cpu.sp - 1, static_cast<uint8_t>(value >> 8));
+		state.cycles += 16;
+		state.cpu.sp -= 2;
+	}
+};
+
+template <typename TField>
+class Pop
+{
+public:
+	static void execute(State& state) {
+		auto high = state.get_memory_byte(state.cpu.sp + 1);
+		auto low = state.get_memory_byte(state.cpu.sp + 2);
+		state.cpu.sp += 2;
+		TField::set(state, (static_cast<uint16_t>(high) << 8) | static_cast<uint16_t>(low));
+
+		state.cycles += 12;
+	}
+};
+
+template <typename TField>
+class Call
+{
+public:
+	static void execute(State& state) {
+		int16_t value = TField::get(state);
+		auto pc = state.cpu.pc;
+		state.cpu.pc = value;
+
+		state.set_memory_byte(state.cpu.sp, static_cast<uint8_t>(pc & 0xFF));
+		state.set_memory_byte(state.cpu.sp - 1, static_cast<uint8_t>(pc >> 8));
+
+		state.cycles += 24;
+		state.cpu.sp -= 2;
+	}
+};
+
+template <typename TCondition>
+class Ret
+{
+public:
+	static void execute(State& state) {
+		if (TCondition::is_true(state)) {
+			auto high = state.get_memory_byte(state.cpu.sp + 1);
+			auto low = state.get_memory_byte(state.cpu.sp + 2);
+			state.cpu.sp += 2;
+			state.cpu.pc = (static_cast<uint16_t>(high) << 8) | static_cast<uint16_t>(low);
+			state.cycles += 8;
+
+		}
+	}
+};
+
+template <typename TField>
+class RotateLeft
+{
+public:
+	static void execute(State& state) {
+		int8_t value = TField::get(state);
+		auto new_carry_set = (value & 0b10000000) > 0;
+		value = value << 1;
+		if ((state.cpu.flags & Flags::Carry) == Flags::Carry) {
+			value += 1;
+		}
+
+		Flags flags = Flags::Empty;
+
+		if (new_carry_set) {
+			flags |= Flags::Carry;
+		}
+		if (value == 0) {
+			flags |= Flags::Zero;
+		}
+		state.cpu.flags = flags;
+		TField::set(state, value);
+		state.cycles += 8;
 	}
 };
 
