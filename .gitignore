@@ -1,0 +1,5 @@
+.vscode
+.vs
+x64
+*.vcxproj.user
+*.gb
