@@ -1,5 +1,5 @@
 #include "IO.hpp"
-#include <iostream>;
+#include <iostream>
 
 
 uint8_t * IO::get_field(uint8_t addr)
@@ -10,7 +10,7 @@ uint8_t * IO::get_field(uint8_t addr)
 	case 0x24: return &this->ChannelVolume;
 	case 0x25: return &this->SoundOutputTerminal;
 	case 0x26: return &this->SoundOnOff;
-	case 0x40: return &this->LCDControl;
+	case 0x40: return reinterpret_cast<uint8_t*>(&this->LCDControl);
 	case 0x42: return &this->ScrollY;
 	case 0x44: return &this->VerticalLine;
 	case 0x47: return &this->BackgroundWindowPaletteData;

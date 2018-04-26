@@ -19,6 +19,8 @@ class State
 public:
 	State();
 
+	bool load_rom(const char* rom);
+
 	Cpu cpu;
 	Rom rom;
 	IO io;

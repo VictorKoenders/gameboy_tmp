@@ -46,14 +46,19 @@ State::State() :
 	banks(),
 	cycles(0)
 {
-	if (!this->rom.load("Pokemon Red.gb")) {
+}
+
+bool State::load_rom(const char * rom)
+{
+	if (!this->rom.load(rom)) {
 		this->is_error = true;
-		return;
+		return false;
 	}
 	auto cartridge_info = get_cartridge_info(this->rom.cartridge());
 
 	this->memory.resize(cartridge_info.memory_size);
 	this->banks.resize(cartridge_info.bank_count);
+	return true;
 }
 
 [[noreturn]]
@@ -214,7 +219,7 @@ const Instruction instructions[256] = {
 	/* 0x05 */ { Dec<B>::execute, "DEC B", 4 },
 	/* 0x06 */ { Load<B, D8>::execute, "LD B, d8", 8 },
 	/* 0x07 */ { "RLCA", 4 },
-	/* 0x08 */ { Load<PtrD16, SP>::execute, "LD (a16), SP", 20 },
+	/* 0x08 */ { "LD (a16), SP", 20 },
 	/* 0x09 */ { Add<HL, BC>::execute, "ADD HL, BC", 8 },
 	/* 0x0A */ { Load<A, PtrBC>::execute, "LD A, (BC)", 8 },
 	/* 0x0B */ { Dec<BC>::execute, "DEC BC", 8 },

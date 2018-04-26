@@ -188,6 +188,7 @@ CartridgeInfo get_cartridge_info(const Cartridge & cartridge)
 	case Cartridge::BandaiTAMA5:
 	case Cartridge::HudsonHuC3:
 	case Cartridge::HudsonHuC1:
+	default:
 		return CartridgeInfo(0, 0);
 	}
 }
