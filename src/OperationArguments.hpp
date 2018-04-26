@@ -28,6 +28,7 @@ class C
 public:
 	static uint8_t get(const State &state);
 	static void set(State &state, uint8_t value);
+	static bool is_true(const State &state);
 };
 
 class D
@@ -77,6 +78,13 @@ class SPR8
 public:
 	static int16_t get(State &state);
 	static void set(State &state, int16_t value);
+};
+
+class AF
+{
+public:
+	static uint16_t get(const State &state);
+	static void set(State &state, uint16_t value);
 };
 
 class BC
@@ -156,7 +164,6 @@ public:
 	static void set(State &state, uint8_t value);
 };
 
-
 class Z
 {
 public:
@@ -164,6 +171,12 @@ public:
 };
 
 class NZ
+{
+public:
+	static bool is_true(const State &state);
+};
+
+class NC
 {
 public:
 	static bool is_true(const State &state);

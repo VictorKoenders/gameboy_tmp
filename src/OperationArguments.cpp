@@ -77,6 +77,16 @@ void D8::set(State &state, uint8_t value)
 	state.panic("Cannot write to D8 address");
 }
 
+uint16_t AF::get(const State &state)
+{
+	return state.cpu.AF;
+}
+
+void AF::set(State &state, uint16_t value)
+{
+	state.cpu.AF = value;
+}
+
 uint16_t BC::get(const State &state)
 {
 	return state.cpu.BC;
@@ -191,17 +201,24 @@ void PtrD16::set(State & state, uint8_t value)
 	state.set_memory_byte(address, value);
 }
 
-
 bool Z::is_true(const State & state)
 {
-	// std::cout << "     Z true: " << ((state.cpu.flags & Flags::Zero) == Flags::Zero ? "yes" : "no") << std::endl;
 	return (state.cpu.flags & Flags::Zero) == Flags::Zero;
 }
 
 bool NZ::is_true(const State & state)
 {
-	// std::cout << "    NZ true: " << ((state.cpu.flags & Flags::Zero) == Flags::Empty ? "yes" : "no") << std::endl;
 	return (state.cpu.flags & Flags::Zero) == Flags::Empty;
+}
+
+bool C::is_true(const State & state)
+{
+	return (state.cpu.flags & Flags::Carry) == Flags::Carry;
+}
+
+bool NC::is_true(const State & state)
+{
+	return (state.cpu.flags & Flags::Carry) == Flags::Empty;
 }
 
 int16_t SPR8::get(State & state)

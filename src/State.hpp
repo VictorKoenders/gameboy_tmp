@@ -16,7 +16,6 @@ class State
 	size_t current_bank;
 	bool boot_rom_enabled;
 	void log_op(uint16_t, const char*);
-	void process_cb();
 public:
 	State();
 
@@ -36,6 +35,7 @@ public:
 	uint8_t get_memory_byte(uint16_t addr);
 	void set_memory_byte(uint16_t addr, uint8_t value);
 	void process();
+	void process_cb();
 };
 
 std::ostream &operator<<(std::ostream &os, State const &state);

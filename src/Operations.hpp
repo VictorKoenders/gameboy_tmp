@@ -18,8 +18,6 @@ public:
 		auto to = TTo::get(state);
 		auto result = from + to;
 
-		state.cycles += 8;
-
 		auto flags = Flags::Empty;
 		if (result == 0) {
 			flags |= Flags::Zero;
@@ -46,8 +44,6 @@ public:
 		auto from = TFrom::get(state);
 		auto to = state.cpu.A;
 		auto result = to - from;
-
-		state.cycles += 8;
 
 		auto flags = Flags::Subtract;
 		if (result == 0) {
@@ -76,6 +72,16 @@ public:
 	}
 };
 
+template <typename TFrom>
+class SubCarry
+{
+public:
+	static void execute(State &state)
+	{
+		state.panic("SBC not implemented");
+	}
+};
+
 template <typename TField>
 class Xor
 {
@@ -85,10 +91,28 @@ public:
 		auto value = TField::get(state);
 		auto result = value ^ state.cpu.A;
 
-		state.cycles += 4;
-
 		state.cpu.flags = result == 0 ? Flags::Zero : Flags::Empty;
 		state.cpu.A = result;
+	}
+};
+
+template <typename TField>
+class And
+{
+public:
+	static void execute(State &state)
+	{
+		state.panic("AND not implemented");
+	}
+};
+
+template <typename TField>
+class Or
+{
+public:
+	static void execute(State &state)
+	{
+		state.panic("Or not implemented");
 	}
 };
 
@@ -101,7 +125,6 @@ public:
 	{
 		auto val = TField::get(state);
 		
-		state.cycles += 8;
 		auto flags = state.cpu.flags & Flags::Carry;
 		if ((val + 1) == 0) {
 			flags |= Flags::Zero;
@@ -123,7 +146,6 @@ public:
 	{
 		auto val = TField::get(state);
 
-		state.cycles += 4;
 		auto flags = (state.cpu.flags & Flags::Carry) | Flags::Subtract;
 		if ((val - 1) == 0) {
 			flags |= Flags::Zero;
@@ -132,7 +154,6 @@ public:
 			flags |= Flags::HalfCarry;
 		}
 		state.cpu.flags = flags;
-
 
 		TField::set(state, val - 1);
 	}
@@ -145,14 +166,6 @@ public:
 	static void execute(State &state)
 	{
 		auto from = TFrom::get(state);
-
-		// TODO: These cycles are weird
-		// If the instruction loads 2 bytes, this instruction takes 12 cycles
-		// If the instruction loads or writes 1 byte, this instruction takes 8 cycles
-		// If the intruction is between CPU registers, then this instruction takes 4 cycles
-
-		// For now we'll just use 8 cycles
-		state.cycles += 8;
 
 		TTo::set(state, from);
 	}
@@ -167,8 +180,6 @@ public:
 		auto from = TFrom::get(state);
 		auto address = 0xFF00 + static_cast<int8_t>(TTo::get(state));
 
-		state.cycles += 12;
-
 		state.set_memory_byte(address, from);
 	}
 };
@@ -181,11 +192,8 @@ public:
 	{
 		int8_t val = static_cast<int8_t>(TField::get(state));
 		if (TCondition::is_true(state)) {
-			state.cycles += 12;
+			state.cycles += 4;
 			state.cpu.pc += val;
-		}
-		else {
-			state.cycles += 8;
 		}
 	}
 };
@@ -200,11 +208,8 @@ public:
 
 		auto val = TField::get(state);
 		if (TCondition::is_true(state)) {
-			state.cycles += 16;
+			state.cycles += 4;
 			state.cpu.pc += val;
-		}
-		else {
-			state.cycles += 12;
 		}
 	}
 };
@@ -227,9 +232,6 @@ public:
 			flags |= Flags::Carry;
 		}
 
-		// TODO: If this is 0xBE CP (HL) or 0xFE CP d8 then this instruction costs 8 cycles instead
-		state.cycles += 4;
-
 		state.cpu.flags = flags;
 	}
 };
@@ -245,9 +247,25 @@ public:
 			flags |= Flags::Zero;
 		}
 
-		state.cycles += 8;
-
 		state.cpu.flags = flags;
+	}
+};
+
+template <int N, typename TField>
+class ClearBit
+{
+public:
+	static void execute(State& state) {
+		state.panic("ClearBit not implemented");
+	}
+};
+
+template <int N, typename TField>
+class SetBit
+{
+public:
+	static void execute(State& state) {
+		state.panic("SetBit not implemented");
 	}
 };
 
@@ -259,7 +277,6 @@ public:
 		int16_t value = TField::get(state);
 		state.set_memory_byte(state.cpu.sp, static_cast<uint8_t>(value & 0xFF));
 		state.set_memory_byte(state.cpu.sp - 1, static_cast<uint8_t>(value >> 8));
-		state.cycles += 16;
 		state.cpu.sp -= 2;
 	}
 };
@@ -273,25 +290,25 @@ public:
 		auto low = state.get_memory_byte(state.cpu.sp + 2);
 		state.cpu.sp += 2;
 		TField::set(state, (static_cast<uint16_t>(high) << 8) | static_cast<uint16_t>(low));
-
-		state.cycles += 12;
 	}
 };
 
-template <typename TField>
+template <typename TCondition, typename TField>
 class Call
 {
 public:
 	static void execute(State& state) {
 		int16_t value = TField::get(state);
-		auto pc = state.cpu.pc;
-		state.cpu.pc = value;
+		if (TCondition::is_true(state)) {
+			auto pc = state.cpu.pc;
+			state.cpu.pc = value;
 
-		state.set_memory_byte(state.cpu.sp, static_cast<uint8_t>(pc & 0xFF));
-		state.set_memory_byte(state.cpu.sp - 1, static_cast<uint8_t>(pc >> 8));
+			state.set_memory_byte(state.cpu.sp, static_cast<uint8_t>(pc & 0xFF));
+			state.set_memory_byte(state.cpu.sp - 1, static_cast<uint8_t>(pc >> 8));
 
-		state.cycles += 24;
-		state.cpu.sp -= 2;
+			state.cycles += 12;
+			state.cpu.sp -= 2;
+		}
 	}
 };
 
@@ -305,8 +322,7 @@ public:
 			auto low = state.get_memory_byte(state.cpu.sp + 2);
 			state.cpu.sp += 2;
 			state.cpu.pc = (static_cast<uint16_t>(high) << 8) | static_cast<uint16_t>(low);
-			state.cycles += 8;
-
+			state.cycles += 12;
 		}
 	}
 };
@@ -333,8 +349,79 @@ public:
 		}
 		state.cpu.flags = flags;
 		TField::set(state, value);
-		state.cycles += 8;
 	}
 };
 
+
+template <typename TField>
+class RotateLeftCarry
+{
+public:
+	static void execute(State& state) {
+		state.panic("RotateLeftCarry not implemented");
+	}
+};
+
+
+template <typename TField>
+class RotateRight
+{
+public:
+	static void execute(State& state) {
+		state.panic("RotateRight not implemented");
+	}
+};
+
+
+template <typename TField>
+class RotateRightCarry
+{
+public:
+	static void execute(State& state) {
+		state.panic("RotateRightCarry not implemented");
+	}
+};
+
+template <typename TField>
+class ShiftLeft
+{
+public:
+	static void execute(State& state) {
+		state.panic("ShiftLeft not implemented");
+	}
+};
+
+template <typename TField>
+class ShiftRight
+{
+public:
+	static void execute(State& state) {
+		state.panic("ShiftRight not implemented");
+	}
+};
+
+template <typename TField>
+class ShiftRightClear
+{
+public:
+	static void execute(State& state) {
+		state.panic("ShiftRightClear not implemented");
+	}
+};
+
+template <typename TField>
+class Swap
+{
+public:
+	static void execute(State& state) {
+		state.panic("Swap not implemented");
+	}
+};
+
+class PrefixCB {
+public:
+	static void execute(State& state) {
+		state.process_cb();
+	}
+};
 
